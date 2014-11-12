@@ -19,6 +19,9 @@ using namespace KDL;
 /* KDL rotation from haptics frame to robot frame (column-major) */
 KDL::Rotation rotation = Rotation(0, 0, -1, -1, 0, 0, 0, 1, 0);  
 
+/* Second KDL Rotation for the robot frame orientation */
+KDL::Rotation rotation2 = Rotation(1, 0, 0, 0, 0, -1, 0, 1, 0);
+
 /* Transform from the base robot frame to the left gripper */
 tf::StampedTransform transform; 
 
@@ -43,15 +46,15 @@ void poseCallback(EECartImpedArm &arm, const geometry_msgs::PoseStamped::ConstPt
 
   ee_cart_imped_msgs::EECartImpedGoal traj;  
 
-  geometry_msgs::Pose currPose = stamped->pose;
+  geometry_msgs::Pose currPose = stamped->pose; 
   geometry_msgs::Quaternion qtn = currPose.orientation;
   geometry_msgs::Point pnt = currPose.position; 
 
   /* Rotation given by the haptic quaternion */
-  KDL::Rotation qRotation = KDL::Rotation::Quaternion(qtn.x, qtn.y, qtn.z, qtn.w);
+  KDL::Rotation qRotation = KDL::Rotation::Quaternion(qtn.x, qtn.y, qtn.z, qtn.w);   
 
   /* Transforming from haptic frame to robot frame */
-  KDL::Rotation finRotation = rotation * qRotation; 
+  KDL::Rotation finRotation = rotation2 * qRotation; 
 
   /* Vector from the position of the haptic point */
   KDL::Vector pVector = Vector(pnt.x, pnt.y, pnt.z);  
@@ -68,8 +71,10 @@ void poseCallback(EECartImpedArm &arm, const geometry_msgs::PoseStamped::ConstPt
   /* Store the current quaternion of the rotation */
   finRotation.GetQuaternion (ox, oy, oz, ow);  
 
-  EECartImpedArm::addTrajectoryPoint(traj, finVector.x() + synced_point.x, finVector.y() + synced_point.y, finVector.z() + synced_point.z, 
-				     ox, oy, oz, ow,
+  
+/*EECartImpedArm::addTrajectoryPoint(traj, synced_point.x, synced_point.y, synced_point.z,*/
+EECartImpedArm::addTrajectoryPoint(traj, finVector.x() + synced_point.x, finVector.y() + synced_point.y, finVector.z() + synced_point.z, 
+				   ox, oy, oz, ow,
                                      2500, 2500, 2500, 100, 100, 100,
                                      false, false, false, false, false,
 					 false, TRAJ_RATE, "/torso_lift_link");  
