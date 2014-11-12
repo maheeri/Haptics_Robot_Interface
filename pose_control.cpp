@@ -74,8 +74,8 @@ void poseCallback(EECartImpedArm &arm, const geometry_msgs::PoseStamped::ConstPt
   
 /*EECartImpedArm::addTrajectoryPoint(traj, synced_point.x, synced_point.y, synced_point.z,*/
 EECartImpedArm::addTrajectoryPoint(traj, finVector.x() + synced_point.x, finVector.y() + synced_point.y, finVector.z() + synced_point.z, 
-				   ox, oy, oz, ow,
-                                     2500, 2500, 2500, 100, 100, 100,
+				   -0.707, 0, 0, 0.707,
+                                     1000, 1000, 1000, 100, 100, 100,
                                      false, false, false, false, false,
 					 false, TRAJ_RATE, "/torso_lift_link");  
   arm.startTrajectory(traj, false);
@@ -92,6 +92,17 @@ int main(int argc, char **argv)
   EECartImpedArm arm("l_arm_cart_imped_controller");
 
   ros::Subscriber sub = n.subscribe<geometry_msgs::PoseStamped>("hapticsPose", 0, boost::bind(&poseCallback,boost::ref(arm),_1));
+  
+  // Move the arm to the initial position 
+  ee_cart_imped_msgs::EECartImpedGoal traj1; 
+  
+  EECartImpedArm::addTrajectoryPoint(traj1, 0.5, 0.2, -0.1, 
+				   -0.707, 0, 0, 0.707,
+                    1000, 1000, 1000, 100, 100, 100,
+                    false, false, false, false, false,
+					 false, TRAJ_RATE, "/torso_lift_link");  
+					 
+  arm.startTrajectory(traj1, true);
 
   //Store transform information for later use
 
