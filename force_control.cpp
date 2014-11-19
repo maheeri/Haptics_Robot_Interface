@@ -3,7 +3,7 @@
 #include <kdl/frames.hpp>
 #include <math.h> 
 
-#define SCALE_FACTOR 2.0
+#define SCALE_FACTOR 8.0
 #define MAX_FORCE 4.0  
 
 using namespace KDL;
@@ -62,15 +62,15 @@ geometry_msgs::Wrench readWrench () {
   double z_force = hapticWrench.force.z()/SCALE_FACTOR;
   double force_mag = sqrt(pow(x_force, 2) + pow(y_force, 2) + pow(z_force, 2)); 
 
-  if (force_mag >= MAX_FORCE) { // scale back if this too much 
+  if (force_mag >= MAX_FORCE) { // scale back if this is too much 
     x_force = x_force * (force_mag/MAX_FORCE);
     y_force = y_force * (force_mag/MAX_FORCE);
     z_force = z_force * (force_mag/MAX_FORCE);
   }
 
-  wrench_msg.force.x = x_force; 
-  wrench_msg.force.y = y_force; 
-  wrench_msg.force.z = z_force; 
+  wrench_msg.force.x = -x_force; 
+  wrench_msg.force.y = -y_force; 
+  wrench_msg.force.z = -z_force; 
   wrench_msg.torque.x = hapticWrench.torque.x();
   wrench_msg.torque.y = hapticWrench.torque.y();
   wrench_msg.torque.z = hapticWrench.torque.z();

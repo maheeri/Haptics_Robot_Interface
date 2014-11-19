@@ -20,7 +20,7 @@ using namespace KDL;
 KDL::Rotation rotation = Rotation(0, 0, -1, -1, 0, 0, 0, 1, 0);  
 
 /* Second KDL Rotation for the robot frame orientation */
-KDL::Rotation rotation2 = Rotation(1, 0, 0, 0, 0, -1, 0, 1, 0);
+KDL::Rotation rotation2 = Rotation(0, 0, 1, 0, 1, 0, -1, 0, 0);
 
 /* Transform from the base robot frame to the left gripper */
 tf::StampedTransform transform; 
@@ -54,7 +54,7 @@ void poseCallback(EECartImpedArm &arm, const geometry_msgs::PoseStamped::ConstPt
   KDL::Rotation qRotation = KDL::Rotation::Quaternion(qtn.x, qtn.y, qtn.z, qtn.w);   
 
   /* Transforming from haptic frame to robot frame */
-  KDL::Rotation finRotation = rotation2 * qRotation; 
+  KDL::Rotation finRotation = rotation * qRotation * rotation2; 
 
   /* Vector from the position of the haptic point */
   KDL::Vector pVector = Vector(pnt.x, pnt.y, pnt.z);  
@@ -74,7 +74,7 @@ void poseCallback(EECartImpedArm &arm, const geometry_msgs::PoseStamped::ConstPt
   
 /*EECartImpedArm::addTrajectoryPoint(traj, synced_point.x, synced_point.y, synced_point.z,*/
 EECartImpedArm::addTrajectoryPoint(traj, finVector.x() + synced_point.x, finVector.y() + synced_point.y, finVector.z() + synced_point.z, 
-				   -0.707, 0, 0, 0.707,
+				   ox, oy, oz, ow,
                                      1000, 1000, 1000, 100, 100, 100,
                                      false, false, false, false, false,
 					 false, TRAJ_RATE, "/torso_lift_link");  
@@ -96,7 +96,7 @@ int main(int argc, char **argv)
   // Move the arm to the initial position 
   ee_cart_imped_msgs::EECartImpedGoal traj1; 
   
-  EECartImpedArm::addTrajectoryPoint(traj1, 0.5, 0.2, -0.1, 
+  EECartImpedArm::addTrajectoryPoint(traj1, 0.6, 0.2, 0.0, 
 				   -0.707, 0, 0, 0.707,
                     1000, 1000, 1000, 100, 100, 100,
                     false, false, false, false, false,
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
     } 
 
   //ros::spin();
-  ros::Rate rate(1000.0); 
+  ros::Rate rate(20.0); 
   while (n.ok()) {
     ros::spinOnce();
     rate.sleep(); 
