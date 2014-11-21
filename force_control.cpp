@@ -4,14 +4,16 @@
 #include <math.h> 
 
 #define SCALE_FACTOR 8.0
-#define MAX_FORCE 4.0  
+#define MAX_FORCE 4.0 
+#define AVG_LEN 5  
 
 using namespace KDL;
 
-/**
-* Receive wrenches from the robot and publish the transformed and scaled
-wrenches for use in the haptic frame.
-*/ 
+/** Receive wrenches from the robot and publish the transformed and scaled
+wrenches for use in the haptic frame. */
+
+/* Buffer for the moving average function */
+geometry_msgs::Wrench buffer[AVG_LEN]; 
 
 /* KDL rotation from haptics frame to robot frame (column-major) */
 KDL::Rotation rotation = Rotation(0, 0, -1, -1, 0, 0, 0, 1, 0);  
@@ -27,22 +29,48 @@ typedef struct {
 
 static RobotWrench roboWrench; 
 
-/** Collects the wrench published from the stores them in the struct
-    RobotWrench */ 
 
-void wrenchCallback(const geometry_msgs::Wrench::ConstPtr& wrench) { 
-  roboWrench.forces[0] = wrench->force.x;
-  roboWrench.forces[1] = wrench->force.y;
-  roboWrench.forces[2] = wrench->force.z;
-  roboWrench.torques[0] = wrench->torque.x;
-  roboWrench.torques[1] = wrench->torque.y;
-  roboWrench.torques[2] = wrench->torque.z;
+/** Produces a moving average of the last AVG_LEN points in the 
+    stream of points for smoother transitions and stores them */
+void computeMovAvg() {
+  double xForceSum  = 0.0;
+  double yForceSum  = 0.0;
+  double zForceSum  = 0.0;
+  double xTorqueSum  = 0.0;
+  double yTorqueSum  = 0.0;
+  double zTorqueSum  = 0.0;
+  for (int i = 0; i < AVG_LEN; i++) {
+    xForceSum += buffer[i].force.x;
+    yForceSum += buffer[i].force.y;
+    zForceSum += buffer[i].force.z;
+    xTorqueSum += buffer[i].torque.x;
+    yTorqueSum += buffer[i].torque.y;
+    zTorqueSum += buffer[i].torque.z;
+  }
+  roboWrench.forces[0] = xForceSum/AVG_LEN;
+  roboWrench.forces[1] = yForceSum/AVG_LEN;
+  roboWrench.forces[2] = zForceSum/AVG_LEN;
+  roboWrench.torques[0] = xTorqueSum/AVG_LEN;
+  roboWrench.torques[1] = yTorqueSum/AVG_LEN;
+  roboWrench.torques[2] = zTorqueSum/AVG_LEN;
+} 
+
+/** Collects the wrench published and stores into the first location
+of the buffer while moving everything else to the right */ 
+
+void wrenchCallback(const geometry_msgs::Wrench::ConstPtr& wrench) {
+  geometry_msgs::Wrench buffer_copy[AVG_LEN]; 
+  std::copy(buffer, buffer + AVG_LEN, buffer_copy);  
+  for (int i = 1; i < AVG_LEN; i++) { 
+    buffer[i] = buffer_copy[i - 1]; 
+  }
+  buffer[0] = *wrench;
 }
 
 
 /** Reads the wrench applied by the robot and returns a wrench containing
     that information */
-geometry_msgs::Wrench readWrench () {
+void publishWrench (ros::Publisher wrenchPub) {
 
   /* Vector of forces from the robot */
   KDL::Vector fVector = Vector(roboWrench.forces[0], roboWrench.forces[1], roboWrench.forces[2]);
@@ -75,7 +103,7 @@ geometry_msgs::Wrench readWrench () {
   wrench_msg.torque.y = hapticWrench.torque.y();
   wrench_msg.torque.z = hapticWrench.torque.z();
 
-  return wrench_msg; 
+  wrenchPub.publish(wrench_msg); 
 }
 
 
@@ -96,11 +124,11 @@ int main(int argc, char **argv)
 
   ros::Publisher wrenchPub = n1.advertise<geometry_msgs::Wrench>("roboWrench", 1000); 
 
-  ros::Rate rate(1000.0); 
+  ros::Rate rate(20.0); 
   while (n.ok()) {
     ros::spinOnce();
-    geometry_msgs::Wrench wrench_msg = readWrench();
-    wrenchPub.publish(wrench_msg);
+    computeMovAvg(); 
+    publishWrench(wrenchPub);
     rate.sleep(); 
   } 
 

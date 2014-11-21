@@ -75,11 +75,12 @@ void poseCallback(EECartImpedArm &arm, const geometry_msgs::PoseStamped::ConstPt
 /*EECartImpedArm::addTrajectoryPoint(traj, synced_point.x, synced_point.y, synced_point.z,*/
 EECartImpedArm::addTrajectoryPoint(traj, finVector.x() + synced_point.x, finVector.y() + synced_point.y, finVector.z() + synced_point.z, 
 				   ox, oy, oz, ow,
-                                     1000, 1000, 1000, 100, 100, 100,
+                                     2000, 2000, 2000, 100, 100, 100,
                                      false, false, false, false, false,
 					 false, TRAJ_RATE, "/torso_lift_link");  
   arm.startTrajectory(traj, false);
 }
+
 
 int main(int argc, char **argv)
 {
@@ -96,9 +97,9 @@ int main(int argc, char **argv)
   // Move the arm to the initial position 
   ee_cart_imped_msgs::EECartImpedGoal traj1; 
   
-  EECartImpedArm::addTrajectoryPoint(traj1, 0.6, 0.2, 0.0, 
+  EECartImpedArm::addTrajectoryPoint(traj1, 0.7, 0.2, 0.0, 
 				   -0.707, 0, 0, 0.707,
-                    1000, 1000, 1000, 100, 100, 100,
+                    2000, 2000, 2000, 100, 100, 100,
                     false, false, false, false, false,
 					 false, TRAJ_RATE, "/torso_lift_link");  
 					 
