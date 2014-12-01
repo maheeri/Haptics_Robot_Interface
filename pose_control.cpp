@@ -7,7 +7,8 @@
 #include <tf/transform_listener.h>
 
 #define TGT_FRAME "/l_gripper_tool_frame"
-#define TRAJ_RATE 0.05 
+#define TRAJ_RATE 0.05
+#define MAX_DIST 1.0  
 
 using namespace KDL; 
 
@@ -30,6 +31,9 @@ geometry_msgs::Point synced_point;
 
 /* Flag to check if this is the first message to allow syncing */
 bool first = true;  
+
+/* Stores the current transform of the robot arm */
+tf::StampedTransform currentTransform; 
 
 void poseCallback(EECartImpedArm &arm, const geometry_msgs::PoseStamped::ConstPtr& stamped) {
 
@@ -62,6 +66,9 @@ void poseCallback(EECartImpedArm &arm, const geometry_msgs::PoseStamped::ConstPt
   /* Transforming position from haptic frame to robot frame */
   KDL::Vector finVector = rotation * pVector; 
 
+  /* Sycning the point with the initial synced point */
+  KDL::Vector syncedVector = Vector(finVector.x() + synced_point.x, finVector.y() + synced_point.y, finVector.z() + synced_point.z); 
+
   /* Coordinates for the current robot Quaternion transform */
   double ox;
   double oy;
@@ -71,19 +78,32 @@ void poseCallback(EECartImpedArm &arm, const geometry_msgs::PoseStamped::ConstPt
   /* Store the current quaternion of the rotation */
   finRotation.GetQuaternion (ox, oy, oz, ow);  
 
+  /* Retrieve the current transform for distance calculation */
+  //getCurrentTransform(currentTransform);
   
+
+  /* Store the distance of the change in position */
+  double x_dist = syncedVector.x() - currentTransform.getOrigin().x();
+  double y_dist = syncedVector.y() - currentTransform.getOrigin().y();
+  double z_dist = syncedVector.z() - currentTransform.getOrigin().z();
+  double dist = sqrt(pow(x_dist, 2) + pow(y_dist, 2) + pow(z_dist, 2));
+
+  if (dist >= MAX_DIST) { // Scale back if distance is too large 
+    double scaled_x = syncedVector.x() * (MAX_DIST/dist);
+    double scaled_y = syncedVector.y() * (MAX_DIST/dist);
+    double scaled_z = syncedVector.z() * (MAX_DIST/dist);
+    syncedVector = Vector(scaled_x, scaled_y, scaled_z);
+    }
+
 /*EECartImpedArm::addTrajectoryPoint(traj, synced_point.x, synced_point.y, synced_point.z,*/
-EECartImpedArm::addTrajectoryPoint(traj, finVector.x() + synced_point.x, finVector.y() + synced_point.y, finVector.z() + synced_point.z, 
-				   ox, oy, oz, ow,
-                                     2000, 2000, 2000, 100, 100, 100,
-                                     false, false, false, false, false,
-					 false, TRAJ_RATE, "/torso_lift_link");  
+/*EECartImpedArm::addTrajectoryPoint(traj, finVector.x() + synced_point.x, finVector.y() + synced_point.y, finVector.z() + synced_point.z*/
+EECartImpedArm::addTrajectoryPoint(traj, syncedVector.x(), syncedVector.y(), syncedVector.z(), ox, oy, oz, ow, 2000, 2000, 2000, 100, 100, 100, false, false, false, false, false, false, TRAJ_RATE, "/torso_lift_link");
+  
   arm.startTrajectory(traj, false);
 }
 
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
 
   ros::init(argc, argv, "hapticListener");
 
@@ -108,21 +128,32 @@ int main(int argc, char **argv)
   //Store transform information for later use
 
   tf::TransformListener listener;
+   
+   listener.waitForTransform("/torso_lift_link", TGT_FRAME,ros::Time(0),ros::Duration(900.0));
 
-  listener.waitForTransform("/torso_lift_link", TGT_FRAME,ros::Time(0),ros::Duration(900.0));
-
-  try { 
-      listener.waitForTransform("/torso_lift_link", TGT_FRAME,ros::Time(0),ros::Duration(3.0));  
-      listener.lookupTransform("/torso_lift_link", TGT_FRAME,  
-                               ros::Time(0), transform);
-    }
-    catch (tf::TransformException ex) {
-      ROS_ERROR("%s",ex.what());
-    } 
-
+   try {
+     listener.waitForTransform("/torso_lift_link", TGT_FRAME,ros::Time(0),ros::Duration(3.0));
+     listener.lookupTransform("/torso_lift_link", TGT_FRAME,
+			      ros::Time(0), transform);
+   }
+   catch (tf::TransformException ex) {
+     ROS_ERROR("%s",ex.what());
+     }
+  
   //ros::spin();
   ros::Rate rate(20.0); 
   while (n.ok()) {
+    
+    // Get the current transform for scaling use 
+    try {
+     listener.waitForTransform("/torso_lift_link", TGT_FRAME,ros::Time(0),ros::Duration(3.0));
+     listener.lookupTransform("/torso_lift_link", TGT_FRAME,
+			      ros::Time(0), currentTransform);
+    }
+    catch (tf::TransformException ex) {
+      ROS_ERROR("%s",ex.what());
+     }
+    
     ros::spinOnce();
     rate.sleep(); 
   } 

@@ -5,7 +5,7 @@
 
 #define SCALE_FACTOR 8.0
 #define MAX_FORCE 4.0 
-#define AVG_LEN 5  
+#define AVG_LEN 10  
 
 using namespace KDL;
 
@@ -91,9 +91,9 @@ void publishWrench (ros::Publisher wrenchPub) {
   double force_mag = sqrt(pow(x_force, 2) + pow(y_force, 2) + pow(z_force, 2)); 
 
   if (force_mag >= MAX_FORCE) { // scale back if this is too much 
-    x_force = x_force * (force_mag/MAX_FORCE);
-    y_force = y_force * (force_mag/MAX_FORCE);
-    z_force = z_force * (force_mag/MAX_FORCE);
+    x_force = x_force * (MAX_FORCE/force_mag);
+    y_force = y_force * (MAX_FORCE/force_mag);
+    z_force = z_force * (MAX_FORCE/force_mag);
   }
 
   wrench_msg.force.x = -x_force; 
