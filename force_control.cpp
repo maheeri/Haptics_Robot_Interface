@@ -3,7 +3,7 @@
 #include <kdl/frames.hpp>
 #include <math.h> 
 
-#define SCALE_FACTOR 8.0
+#define SCALE_FACTOR 2.0 
 #define MAX_FORCE 4.0 
 #define AVG_LEN 10  
 
@@ -96,7 +96,7 @@ void publishWrench (ros::Publisher wrenchPub) {
     z_force = z_force * (MAX_FORCE/force_mag);
   }
 
-  wrench_msg.force.x = -x_force; 
+  wrench_msg.force.x = -x_force; // negate the force to get the correct force orientation 
   wrench_msg.force.y = -y_force; 
   wrench_msg.force.z = -z_force; 
   wrench_msg.torque.x = hapticWrench.torque.x();

@@ -96,7 +96,7 @@ void publishWrench (ros::Publisher wrenchPub) {
     z_force = z_force * (MAX_FORCE/force_mag);
   }
 
-  wrench_msg.force.x = -x_force; 
+  wrench_msg.force.x = -x_force; // negate the force to get the correct force orientation 
   wrench_msg.force.y = -y_force; 
   wrench_msg.force.z = -z_force; 
   wrench_msg.torque.x = hapticWrench.torque.x();

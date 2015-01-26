@@ -8,7 +8,7 @@
 
 #define TGT_FRAME "/l_gripper_tool_frame"
 #define TRAJ_RATE 0.05
-#define MAX_DIST 1.0  
+#define MAX_DIST 0.05
 
 using namespace KDL; 
 
@@ -78,10 +78,6 @@ void poseCallback(EECartImpedArm &arm, const geometry_msgs::PoseStamped::ConstPt
   /* Store the current quaternion of the rotation */
   finRotation.GetQuaternion (ox, oy, oz, ow);  
 
-  /* Retrieve the current transform for distance calculation */
-  //getCurrentTransform(currentTransform);
-  
-
   /* Store the distance of the change in position */
   double x_dist = syncedVector.x() - currentTransform.getOrigin().x();
   double y_dist = syncedVector.y() - currentTransform.getOrigin().y();
@@ -89,15 +85,15 @@ void poseCallback(EECartImpedArm &arm, const geometry_msgs::PoseStamped::ConstPt
   double dist = sqrt(pow(x_dist, 2) + pow(y_dist, 2) + pow(z_dist, 2));
 
   if (dist >= MAX_DIST) { // Scale back if distance is too large 
-    double scaled_x = syncedVector.x() * (MAX_DIST/dist);
-    double scaled_y = syncedVector.y() * (MAX_DIST/dist);
-    double scaled_z = syncedVector.z() * (MAX_DIST/dist);
+    double scaled_x = x_dist * (MAX_DIST/dist) + currentTransform.getOrigin().x();
+    double scaled_y = y_dist * (MAX_DIST/dist) + currentTransform.getOrigin().y();
+    double scaled_z = z_dist * (MAX_DIST/dist) + currentTransform.getOrigin().z();
     syncedVector = Vector(scaled_x, scaled_y, scaled_z);
     }
 
 /*EECartImpedArm::addTrajectoryPoint(traj, synced_point.x, synced_point.y, synced_point.z,*/
 /*EECartImpedArm::addTrajectoryPoint(traj, finVector.x() + synced_point.x, finVector.y() + synced_point.y, finVector.z() + synced_point.z*/
-EECartImpedArm::addTrajectoryPoint(traj, syncedVector.x(), syncedVector.y(), syncedVector.z(), ox, oy, oz, ow, 2000, 2000, 2000, 100, 100, 100, false, false, false, false, false, false, TRAJ_RATE, "/torso_lift_link");
+EECartImpedArm::addTrajectoryPoint(traj, syncedVector.x(), syncedVector.y(), syncedVector.z(), ox, oy, oz, ow, 1000, 1000, 1000, 100, 100, 100, false, false, false, false, false, false, TRAJ_RATE, "/torso_lift_link");
   
   arm.startTrajectory(traj, false);
 }
@@ -119,7 +115,7 @@ int main(int argc, char **argv) {
   
   EECartImpedArm::addTrajectoryPoint(traj1, 0.7, 0.2, 0.0, 
 				   -0.707, 0, 0, 0.707,
-                    2000, 2000, 2000, 100, 100, 100,
+                    1000, 1000, 1000, 100, 100, 100,
                     false, false, false, false, false,
 					 false, TRAJ_RATE, "/torso_lift_link");  
 					 
@@ -141,7 +137,7 @@ int main(int argc, char **argv) {
      }
   
   //ros::spin();
-  ros::Rate rate(20.0); 
+  ros::Rate rate(40.0); 
   while (n.ok()) {
     
     // Get the current transform for scaling use 
