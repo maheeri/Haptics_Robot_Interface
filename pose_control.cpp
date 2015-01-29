@@ -54,7 +54,7 @@ void poseCallback(EECartImpedArm &arm, const geometry_msgs::PoseStamped::ConstPt
   geometry_msgs::Quaternion qtn = currPose.orientation;
   geometry_msgs::Point pnt = currPose.position; 
 
-  /* Rotation given by the haptic quaternion */
+  /* Rotation given by the haptic quaternion */  
   KDL::Rotation qRotation = KDL::Rotation::Quaternion(qtn.x, qtn.y, qtn.z, qtn.w);   
 
   /* Transforming from haptic frame to robot frame */

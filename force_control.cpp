@@ -5,6 +5,7 @@
 
 #define SCALE_FACTOR 2.0 
 #define MAX_FORCE 4.0 
+#define MIN_FORCE 2.0
 #define AVG_LEN 10  
 
 using namespace KDL;
@@ -94,6 +95,12 @@ void publishWrench (ros::Publisher wrenchPub) {
     x_force = x_force * (MAX_FORCE/force_mag);
     y_force = y_force * (MAX_FORCE/force_mag);
     z_force = z_force * (MAX_FORCE/force_mag);
+  }
+
+  if (force_mag <= MIN_FORCE) { // scale down to zero if force is too low
+    x_force = 0;
+    y_force = 0;
+    z_force = 0;
   }
 
   wrench_msg.force.x = -x_force; // negate the force to get the correct force orientation 
